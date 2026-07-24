@@ -300,6 +300,24 @@ public partial class MainWindow : Window
             {
                 _cancellationTokenSource.Token.ThrowIfCancellationRequested();
 
+                if (IsProgramAlreadyInstalled(installer))
+                {
+                    installer.Status = "Già installato";
+                    successful++;
+                    completed++;
+
+                    GeneralStatusText.Text =
+                        $"{installer.Name} è già installato. Passo al successivo...";
+
+                    WriteLog(
+                        $"Già installato, installer saltato: {installer.Name}");
+
+                    InstallationProgressBar.Value =
+                        completed * 100.0 / selectedInstallers.Count;
+
+                    continue;
+                }
+
                 installer.Status = "Installazione...";
                 GeneralStatusText.Text = $"Installazione di {installer.Name}";
                 WriteLog($"Avvio installazione normale: {installer.Name}");
@@ -435,6 +453,172 @@ public partial class MainWindow : Window
 
             throw;
         }
+    }
+
+    private static bool IsProgramAlreadyInstalled(
+        InstallerItem installer)
+    {
+        var expectedNames = GetExpectedInstalledNames(installer);
+
+        if (expectedNames.Count == 0)
+            return false;
+
+        var uninstallRegistryPaths = new[]
+        {
+            @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall",
+            @"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall"
+        };
+
+        var registryLocations = new[]
+        {
+            (RegistryHive.LocalMachine, RegistryView.Registry64),
+            (RegistryHive.LocalMachine, RegistryView.Registry32),
+            (RegistryHive.CurrentUser, RegistryView.Registry64),
+            (RegistryHive.CurrentUser, RegistryView.Registry32)
+        };
+
+        foreach (var location in registryLocations)
+        {
+            try
+            {
+                using var baseKey = RegistryKey.OpenBaseKey(
+                    location.Item1,
+                    location.Item2);
+
+                foreach (var registryPath in uninstallRegistryPaths)
+                {
+                    using var uninstallKey = baseKey.OpenSubKey(registryPath);
+
+                    if (uninstallKey is null)
+                        continue;
+
+                    foreach (var subKeyName in uninstallKey.GetSubKeyNames())
+                    {
+                        using var programKey =
+                            uninstallKey.OpenSubKey(subKeyName);
+
+                        var displayName =
+                            programKey?.GetValue("DisplayName") as string;
+
+                        if (string.IsNullOrWhiteSpace(displayName))
+                            continue;
+
+                        var normalizedDisplayName =
+                            NormalizeProgramName(displayName);
+
+                        if (expectedNames.Any(expected =>
+                            normalizedDisplayName.Contains(expected) ||
+                            expected.Contains(normalizedDisplayName)))
+                        {
+                            return true;
+                        }
+                    }
+                }
+            }
+            catch
+            {
+                // Una chiave non accessibile non deve interrompere la coda.
+            }
+        }
+
+        return false;
+    }
+
+    private static List<string> GetExpectedInstalledNames(
+        InstallerItem installer)
+    {
+        var sourceText =
+            $"{installer.Name} {installer.FileName}".ToLowerInvariant();
+
+        var names = new List<string>();
+
+        if (sourceText.Contains("7-zip") ||
+            sourceText.Contains("7zip") ||
+            sourceText.Contains("7z"))
+        {
+            names.Add(NormalizeProgramName("7-Zip"));
+        }
+        else if (sourceText.Contains("chrome"))
+        {
+            names.Add(NormalizeProgramName("Google Chrome"));
+        }
+        else if (sourceText.Contains("firefox"))
+        {
+            names.Add(NormalizeProgramName("Mozilla Firefox"));
+        }
+        else if (sourceText.Contains("vlc"))
+        {
+            names.Add(NormalizeProgramName("VLC media player"));
+        }
+        else if (sourceText.Contains("winrar"))
+        {
+            names.Add(NormalizeProgramName("WinRAR"));
+        }
+        else if (sourceText.Contains("notepad++") ||
+                 sourceText.Contains("npp"))
+        {
+            names.Add(NormalizeProgramName("Notepad++"));
+        }
+        else if (sourceText.Contains("discord"))
+        {
+            names.Add(NormalizeProgramName("Discord"));
+        }
+        else if (sourceText.Contains("spotify"))
+        {
+            names.Add(NormalizeProgramName("Spotify"));
+        }
+        else if (sourceText.Contains("teams"))
+        {
+            names.Add(NormalizeProgramName("Microsoft Teams"));
+        }
+        else if (sourceText.Contains("zoom"))
+        {
+            names.Add(NormalizeProgramName("Zoom"));
+        }
+        else if (sourceText.Contains("anydesk"))
+        {
+            names.Add(NormalizeProgramName("AnyDesk"));
+        }
+        else if (sourceText.Contains("teamviewer"))
+        {
+            names.Add(NormalizeProgramName("TeamViewer"));
+        }
+        else if (sourceText.Contains("adobe") ||
+                 sourceText.Contains("acrobat") ||
+                 sourceText.Contains("reader"))
+        {
+            names.Add(NormalizeProgramName("Adobe Acrobat"));
+            names.Add(NormalizeProgramName("Adobe Acrobat Reader"));
+        }
+        else
+        {
+            var genericName = NormalizeProgramName(installer.Name);
+
+            if (genericName.Length >= 4)
+                names.Add(genericName);
+        }
+
+        return names
+            .Where(name => !string.IsNullOrWhiteSpace(name))
+            .Distinct()
+            .ToList();
+    }
+
+    private static string NormalizeProgramName(string value)
+    {
+        var characters = value
+            .ToLowerInvariant()
+            .Where(character =>
+                char.IsLetterOrDigit(character) ||
+                char.IsWhiteSpace(character))
+            .ToArray();
+
+        return string.Join(
+            " ",
+            new string(characters)
+                .Split(
+                    ' ',
+                    StringSplitOptions.RemoveEmptyEntries));
     }
 
     private static bool IsSuccessfulExitCode(int exitCode)
