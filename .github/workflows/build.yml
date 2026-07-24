@@ -1,0 +1,46 @@
+name: Compila MultiInstaller
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+      - name: Scarica il progetto
+        uses: actions/checkout@v4
+
+      - name: Installa .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Ripristina il progetto
+        run: dotnet restore MultiInstaller.csproj
+
+      - name: Compila EXE Windows
+        run: >
+          dotnet publish MultiInstaller.csproj
+          --configuration Release
+          --runtime win-x64
+          --self-contained true
+          -p:PublishSingleFile=true
+          -p:IncludeNativeLibrariesForSelfExtract=true
+          -p:DebugType=None
+          -p:DebugSymbols=false
+          --output publish
+
+      - name: Crea pacchetto ZIP
+        shell: powershell
+        run: Compress-Archive -Path publish\* -DestinationPath MultiInstaller-Windows-x64.zip
+
+      - name: Carica programma compilato
+        uses: actions/upload-artifact@v4
+        with:
+          name: MultiInstaller-Windows-x64
+          path: MultiInstaller-Windows-x64.zip
+          retention-days: 30
