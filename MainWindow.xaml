@@ -1,0 +1,120 @@
+<Window x:Class="MultiInstaller.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="MultiInstaller" Height="720" Width="1050" MinHeight="600" MinWidth="820"
+        WindowStartupLocation="CenterScreen"
+        AllowDrop="True" Drop="Window_Drop" DragOver="Window_DragOver">
+    <Window.Resources>
+        <Style TargetType="Button">
+            <Setter Property="Padding" Value="14,8"/>
+            <Setter Property="Margin" Value="4"/>
+            <Setter Property="MinHeight" Value="36"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+    </Window.Resources>
+
+    <Grid Background="#FFF5F7FA">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="135"/>
+        </Grid.RowDefinitions>
+
+        <Border Grid.Row="0" Background="#FF243447" Padding="22">
+            <DockPanel>
+                <StackPanel>
+                    <TextBlock Text="MULTIINSTALLER" Foreground="White" FontSize="27" FontWeight="Bold"/>
+                    <TextBlock Text="Aggiungi gli installer, seleziona i programmi e avvia tutto con un clic"
+                               Foreground="#FFD7E1EA" Margin="0,4,0,0"/>
+                </StackPanel>
+                <TextBlock x:Name="CountText" DockPanel.Dock="Right" Foreground="White"
+                           FontSize="16" VerticalAlignment="Center"/>
+            </DockPanel>
+        </Border>
+
+        <Border Grid.Row="1" Margin="14,14,14,0" Padding="18" Background="White"
+                BorderBrush="#FFD9DEE5" BorderThickness="1" CornerRadius="10"
+                AllowDrop="True" Drop="DropArea_Drop" DragOver="Window_DragOver">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel VerticalAlignment="Center">
+                    <TextBlock Text="AGGIUNGI PROGRAMMI" FontSize="17" FontWeight="Bold"/>
+                    <TextBlock Text="Trascina qui tutti i file .exe, .msi, .msix o .appx che vuoi conservare"
+                               Foreground="#FF647184" Margin="0,5,0,0"/>
+                    <TextBlock Text="I file vengono copiati automaticamente nella libreria del programma."
+                               Foreground="#FF8893A2" FontSize="12" Margin="0,3,0,0"/>
+                </StackPanel>
+                <Button Grid.Column="1" x:Name="AddButton" Content="＋ SCEGLI FILE"
+                        Click="Add_Click" FontWeight="Bold" Background="#FFEAF2FF"/>
+            </Grid>
+        </Border>
+
+        <Border Grid.Row="2" Margin="14" Background="White" BorderBrush="#FFD9DEE5"
+                BorderThickness="1" CornerRadius="10">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+                <DockPanel Margin="10,8">
+                    <TextBlock Text="PROGRAMMI DISPONIBILI" FontWeight="Bold" VerticalAlignment="Center" Margin="4"/>
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                        <Button Content="Seleziona tutti" Click="SelectAll_Click" Padding="10,5" MinHeight="30"/>
+                        <Button Content="Deseleziona" Click="SelectNone_Click" Padding="10,5" MinHeight="30"/>
+                        <Button Content="Rimuovi" Click="Remove_Click" Padding="10,5" MinHeight="30"/>
+                    </StackPanel>
+                </DockPanel>
+
+                <DataGrid x:Name="ProgramsGrid" Grid.Row="1" AutoGenerateColumns="False"
+                          ItemsSource="{Binding Items}" SelectionMode="Extended" CanUserAddRows="False"
+                          IsReadOnly="False" HeadersVisibility="Column" GridLinesVisibility="Horizontal"
+                          RowHeaderWidth="0" AlternatingRowBackground="#FFF6F8FA" BorderThickness="0">
+                    <DataGrid.Columns>
+                        <DataGridCheckBoxColumn Header="Installa" Binding="{Binding IsSelected, UpdateSourceTrigger=PropertyChanged}" Width="80"/>
+                        <DataGridTextColumn Header="Programma" Binding="{Binding Name}" Width="2*" IsReadOnly="True"/>
+                        <DataGridTextColumn Header="File" Binding="{Binding FileName}" Width="2*" IsReadOnly="True"/>
+                        <DataGridTextColumn Header="Tipo" Binding="{Binding Type}" Width="75" IsReadOnly="True"/>
+                        <DataGridTextColumn Header="Stato" Binding="{Binding Status}" Width="170" IsReadOnly="True"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </Grid>
+        </Border>
+
+        <Border Grid.Row="3" Background="White" BorderBrush="#FFD9DEE5" BorderThickness="0,1,0,1" Padding="14">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel VerticalAlignment="Center">
+                    <TextBlock x:Name="ProgressText" Text="Pronto" FontWeight="SemiBold"/>
+                    <ProgressBar x:Name="ProgressBar" Height="18" Margin="0,8,14,0" Minimum="0" Maximum="100"/>
+                </StackPanel>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button x:Name="CancelButton" Content="Annulla" Click="Cancel_Click" IsEnabled="False"/>
+                    <Button x:Name="InstallButton" Content="AVVIA INSTALLAZIONI" Click="Install_Click"
+                            FontWeight="Bold" Padding="24,11" Background="#FF2F80ED" Foreground="White"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <Grid Grid.Row="4" Margin="14,8,14,14">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+            <DockPanel>
+                <TextBlock Text="ATTIVITÀ" FontWeight="Bold" Margin="4"/>
+                <Button DockPanel.Dock="Right" Content="Pulisci" Padding="10,4" MinHeight="28" Click="ClearLog_Click"/>
+            </DockPanel>
+            <TextBox x:Name="LogBox" Grid.Row="1" IsReadOnly="True" TextWrapping="Wrap"
+                     VerticalScrollBarVisibility="Auto" FontFamily="Consolas" FontSize="12"
+                     Background="#FF111820" Foreground="#FFE6EDF3"/>
+        </Grid>
+    </Grid>
+</Window>
