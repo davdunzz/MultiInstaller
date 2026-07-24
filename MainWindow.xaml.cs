@@ -30,8 +30,13 @@ public partial class MainWindow : Window
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "MultiInstaller");
 
-        _installersFolder = Path.Combine(_applicationFolder, "Installers");
-        _catalogPath = Path.Combine(_applicationFolder, "catalog.json");
+        _installersFolder = Path.Combine(
+            _applicationFolder,
+            "Installers");
+
+        _catalogPath = Path.Combine(
+            _applicationFolder,
+            "catalog.json");
 
         Directory.CreateDirectory(_applicationFolder);
         Directory.CreateDirectory(_installersFolder);
@@ -54,7 +59,9 @@ public partial class MainWindow : Window
         };
 
         if (dialog.ShowDialog() == true)
+        {
             AddInstallerFiles(dialog.FileNames);
+        }
     }
 
     private void DropArea_DragOver(object sender, DragEventArgs e)
@@ -71,8 +78,11 @@ public partial class MainWindow : Window
         if (!e.Data.GetDataPresent(DataFormats.FileDrop))
             return;
 
-        if (e.Data.GetData(DataFormats.FileDrop) is string[] files && files.Length > 0)
+        if (e.Data.GetData(DataFormats.FileDrop) is string[] files &&
+            files.Length > 0)
+        {
             AddInstallerFiles(files);
+        }
     }
 
     private void AddInstallerFiles(IEnumerable<string> files)
@@ -82,6 +92,7 @@ public partial class MainWindow : Window
             .Where(file =>
             {
                 var extension = Path.GetExtension(file);
+
                 return extension.Equals(".exe", StringComparison.OrdinalIgnoreCase)
                     || extension.Equals(".msi", StringComparison.OrdinalIgnoreCase);
             })
@@ -94,6 +105,7 @@ public partial class MainWindow : Window
                 "MultiInstaller",
                 MessageBoxButton.OK,
                 MessageBoxImage.Warning);
+
             return;
         }
 
@@ -121,7 +133,8 @@ public partial class MainWindow : Window
             }
             catch (Exception exception)
             {
-                WriteLog($"Errore durante l'aggiunta di {sourcePath}: {exception.Message}");
+                WriteLog(
+                    $"Errore durante l'aggiunta di {sourcePath}: {exception.Message}");
             }
         }
 
@@ -144,6 +157,7 @@ public partial class MainWindow : Window
             destinationPath = Path.Combine(
                 _installersFolder,
                 $"{nameWithoutExtension}_{counter}{extension}");
+
             counter++;
         }
 
@@ -154,7 +168,8 @@ public partial class MainWindow : Window
     {
         try
         {
-            if (Path.GetExtension(filePath).Equals(".exe", StringComparison.OrdinalIgnoreCase))
+            if (Path.GetExtension(filePath)
+                .Equals(".exe", StringComparison.OrdinalIgnoreCase))
             {
                 var versionInfo = FileVersionInfo.GetVersionInfo(filePath);
 
@@ -200,6 +215,7 @@ public partial class MainWindow : Window
                 "MultiInstaller",
                 MessageBoxButton.OK,
                 MessageBoxImage.Information);
+
             return;
         }
 
@@ -219,7 +235,8 @@ public partial class MainWindow : Window
         }
         catch (Exception exception)
         {
-            WriteLog($"Non è stato possibile eliminare il file: {exception.Message}");
+            WriteLog(
+                $"Non è stato possibile eliminare il file: {exception.Message}");
         }
 
         Installers.Remove(selectedItem);
@@ -232,7 +249,9 @@ public partial class MainWindow : Window
         if (_installationRunning)
             return;
 
-        var selectedInstallers = Installers.Where(item => item.IsSelected).ToList();
+        var selectedInstallers = Installers
+            .Where(item => item.IsSelected)
+            .ToList();
 
         if (selectedInstallers.Count == 0)
         {
@@ -241,10 +260,13 @@ public partial class MainWindow : Window
                 "MultiInstaller",
                 MessageBoxButton.OK,
                 MessageBoxImage.Information);
+
             return;
         }
 
-        var missingFiles = selectedInstallers.Where(item => !File.Exists(item.FilePath)).ToList();
+        var missingFiles = selectedInstallers
+            .Where(item => !File.Exists(item.FilePath))
+            .ToList();
 
         if (missingFiles.Count > 0)
         {
@@ -256,11 +278,13 @@ public partial class MainWindow : Window
                 "MultiInstaller",
                 MessageBoxButton.OK,
                 MessageBoxImage.Error);
+
             return;
         }
 
         _installationRunning = true;
         _cancellationTokenSource = new CancellationTokenSource();
+
         SetInterfaceEnabled(false);
 
         InstallationProgressBar.Value = 0;
@@ -278,7 +302,7 @@ public partial class MainWindow : Window
 
                 installer.Status = "Installazione...";
                 GeneralStatusText.Text = $"Installazione di {installer.Name}";
-                WriteLog($"Avvio installazione: {installer.Name}");
+                WriteLog($"Avvio installazione normale: {installer.Name}");
 
                 try
                 {
@@ -297,13 +321,19 @@ public partial class MainWindow : Window
                         };
 
                         successful++;
-                        WriteLog($"Installazione completata: {installer.Name} (codice {exitCode})");
+
+                        WriteLog(
+                            $"Installazione completata: {installer.Name} " +
+                            $"(codice {exitCode})");
                     }
                     else
                     {
                         installer.Status = $"Errore ({exitCode})";
                         failed++;
-                        WriteLog($"Installazione non riuscita: {installer.Name} (codice {exitCode})");
+
+                        WriteLog(
+                            $"Installazione non riuscita: {installer.Name} " +
+                            $"(codice {exitCode})");
                     }
                 }
                 catch (OperationCanceledException)
@@ -315,19 +345,26 @@ public partial class MainWindow : Window
                 {
                     installer.Status = "Errore";
                     failed++;
-                    WriteLog($"Errore durante l'installazione di {installer.Name}: {exception.Message}");
+
+                    WriteLog(
+                        $"Errore durante l'installazione di {installer.Name}: " +
+                        exception.Message);
                 }
                 finally
                 {
                     _currentProcess = null;
                     completed++;
-                    InstallationProgressBar.Value = completed * 100.0 / selectedInstallers.Count;
+
+                    InstallationProgressBar.Value =
+                        completed * 100.0 / selectedInstallers.Count;
                 }
             }
 
             GeneralStatusText.Text =
                 $"Operazione terminata: {successful} completati, {failed} errori";
-            WriteLog($"Operazione terminata. Completati: {successful}, errori: {failed}.");
+
+            WriteLog(
+                $"Operazione terminata. Completati: {successful}, errori: {failed}.");
         }
         catch (OperationCanceledException)
         {
@@ -337,7 +374,9 @@ public partial class MainWindow : Window
         finally
         {
             SetInterfaceEnabled(true);
+
             _installationRunning = false;
+
             _cancellationTokenSource?.Dispose();
             _cancellationTokenSource = null;
             _currentProcess = null;
@@ -350,85 +389,32 @@ public partial class MainWindow : Window
     {
         var extension = Path.GetExtension(installer.FilePath);
 
+        ProcessStartInfo startInfo;
+
         if (extension.Equals(".msi", StringComparison.OrdinalIgnoreCase))
         {
-            var msiStartInfo = new ProcessStartInfo
-            {
-                FileName = "msiexec.exe",
-                Arguments = $"/i \"{installer.FilePath}\" /qn /norestart",
-                UseShellExecute = true,
-                WorkingDirectory = Path.GetDirectoryName(installer.FilePath)
-            };
-
-            WriteLog($"Comando MSI: msiexec.exe {msiStartInfo.Arguments}");
-
-            var msiExitCode = await RunInstallerProcessAsync(msiStartInfo, cancellationToken);
-
-            if (IsSuccessfulExitCode(msiExitCode))
-                return msiExitCode;
-
-            WriteLog($"Installazione MSI silenziosa non riuscita (codice {msiExitCode}). Riprovo in modalità normale.");
-
-            var normalMsiStartInfo = new ProcessStartInfo
+            startInfo = new ProcessStartInfo
             {
                 FileName = "msiexec.exe",
                 Arguments = $"/i \"{installer.FilePath}\"",
                 UseShellExecute = true,
                 WorkingDirectory = Path.GetDirectoryName(installer.FilePath)
             };
-
-            return await RunInstallerProcessAsync(normalMsiStartInfo, cancellationToken);
-        }
-
-        var silentArguments = DetectSilentArguments(installer);
-
-        if (!string.IsNullOrWhiteSpace(silentArguments))
-        {
-            WriteLog($"Tentativo silenzioso: {installer.FileName} {silentArguments}");
-
-            var silentStartInfo = new ProcessStartInfo
-            {
-                FileName = installer.FilePath,
-                Arguments = silentArguments,
-                UseShellExecute = true,
-                WorkingDirectory = Path.GetDirectoryName(installer.FilePath)
-            };
-
-            var silentExitCode = await RunInstallerProcessAsync(
-                silentStartInfo,
-                cancellationToken);
-
-            if (IsSuccessfulExitCode(silentExitCode))
-                return silentExitCode;
-
-            WriteLog($"Modalità silenziosa non riuscita per {installer.Name} (codice {silentExitCode}). Riprovo in modalità normale.");
         }
         else
         {
-            WriteLog($"Nessun comando silenzioso riconosciuto per {installer.Name}.");
+            startInfo = new ProcessStartInfo
+            {
+                FileName = installer.FilePath,
+                Arguments = string.Empty,
+                UseShellExecute = true,
+                WorkingDirectory = Path.GetDirectoryName(installer.FilePath)
+            };
         }
 
-        cancellationToken.ThrowIfCancellationRequested();
-
-        var normalStartInfo = new ProcessStartInfo
-        {
-            FileName = installer.FilePath,
-            Arguments = string.Empty,
-            UseShellExecute = true,
-            WorkingDirectory = Path.GetDirectoryName(installer.FilePath)
-        };
-
-        WriteLog($"Avvio normale: {installer.FileName}");
-
-        return await RunInstallerProcessAsync(normalStartInfo, cancellationToken);
-    }
-
-    private async Task<int> RunInstallerProcessAsync(
-        ProcessStartInfo startInfo,
-        CancellationToken cancellationToken)
-    {
         _currentProcess = Process.Start(startInfo)
-            ?? throw new InvalidOperationException("Non è stato possibile avviare l'installer.");
+            ?? throw new InvalidOperationException(
+                "Non è stato possibile avviare l'installer.");
 
         try
         {
@@ -453,60 +439,11 @@ public partial class MainWindow : Window
 
     private static bool IsSuccessfulExitCode(int exitCode)
     {
-        return exitCode is 0 or 1641 or 3010 or 1638;
-    }
-
-    private static string DetectSilentArguments(InstallerItem installer)
-    {
-        var searchText = $"{installer.Name} {installer.FileName}".ToLowerInvariant();
-
-        if (searchText.Contains("chrome"))
-            return "/silent /install";
-
-        if (searchText.Contains("firefox"))
-            return "-ms";
-
-        if (searchText.Contains("vlc"))
-            return "/S";
-
-        if (searchText.Contains("7-zip") ||
-            searchText.Contains("7zip") ||
-            searchText.Contains("7z"))
-            return "/S";
-
-        if (searchText.Contains("winrar"))
-            return "/S";
-
-        if (searchText.Contains("notepad++") || searchText.Contains("npp"))
-            return "/S";
-
-        if (searchText.Contains("discord"))
-            return "--silent";
-
-        if (searchText.Contains("spotify"))
-            return "/silent";
-
-        if (searchText.Contains("teams"))
-            return "-s";
-
-        if (searchText.Contains("zoom"))
-            return "/silent";
-
-        if (searchText.Contains("anydesk"))
-            return "--silent";
-
-        if (searchText.Contains("teamviewer"))
-            return "/S";
-
-        if (searchText.Contains("adobe") ||
-            searchText.Contains("acrobat") ||
-            searchText.Contains("reader"))
-            return "/sAll /rs /rps /msi EULA_ACCEPT=YES";
-
-        if (searchText.Contains("setup"))
-            return "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART";
-
-        return string.Empty;
+        return exitCode is
+            0 or
+            1641 or
+            3010 or
+            1638;
     }
 
     private void CancelButton_Click(object sender, RoutedEventArgs e)
@@ -532,7 +469,8 @@ public partial class MainWindow : Window
         }
         catch (Exception exception)
         {
-            WriteLog($"Non è stato possibile interrompere il processo: {exception.Message}");
+            WriteLog(
+                $"Non è stato possibile interrompere il processo: {exception.Message}");
         }
     }
 
@@ -552,20 +490,26 @@ public partial class MainWindow : Window
         try
         {
             var json = File.ReadAllText(_catalogPath);
-            var savedItems = JsonSerializer.Deserialize<List<InstallerItem>>(json)
+
+            var savedItems =
+                JsonSerializer.Deserialize<List<InstallerItem>>(json)
                 ?? new List<InstallerItem>();
 
             Installers.Clear();
 
             foreach (var item in savedItems)
             {
-                item.Status = File.Exists(item.FilePath) ? "Pronto" : "File mancante";
+                item.Status = File.Exists(item.FilePath)
+                    ? "Pronto"
+                    : "File mancante";
+
                 Installers.Add(item);
             }
         }
         catch (Exception exception)
         {
-            WriteLog($"Errore nel caricamento del catalogo: {exception.Message}");
+            WriteLog(
+                $"Errore nel caricamento del catalogo: {exception.Message}");
         }
     }
 
@@ -573,19 +517,28 @@ public partial class MainWindow : Window
     {
         try
         {
-            var options = new JsonSerializerOptions { WriteIndented = true };
-            var json = JsonSerializer.Serialize(Installers.ToList(), options);
+            var options = new JsonSerializerOptions
+            {
+                WriteIndented = true
+            };
+
+            var json = JsonSerializer.Serialize(
+                Installers.ToList(),
+                options);
+
             File.WriteAllText(_catalogPath, json);
         }
         catch (Exception exception)
         {
-            WriteLog($"Errore nel salvataggio del catalogo: {exception.Message}");
+            WriteLog(
+                $"Errore nel salvataggio del catalogo: {exception.Message}");
         }
     }
 
     private void WriteLog(string message)
     {
         var line = $"[{DateTime.Now:HH:mm:ss}] {message}";
+
         LogTextBox.AppendText(line + Environment.NewLine);
         LogTextBox.ScrollToEnd();
     }
@@ -597,13 +550,17 @@ public class InstallerItem : INotifyPropertyChanged
     private string _status = "Pronto";
 
     public Guid Id { get; set; }
+
     public string Name { get; set; } = string.Empty;
+
     public string FileName { get; set; } = string.Empty;
+
     public string FilePath { get; set; } = string.Empty;
 
     public bool IsSelected
     {
         get => _isSelected;
+
         set
         {
             if (_isSelected == value)
@@ -617,6 +574,7 @@ public class InstallerItem : INotifyPropertyChanged
     public string Status
     {
         get => _status;
+
         set
         {
             if (_status == value)
@@ -629,8 +587,11 @@ public class InstallerItem : INotifyPropertyChanged
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
-    private void OnPropertyChanged([CallerMemberName] string? propertyName = null)
+    private void OnPropertyChanged(
+        [CallerMemberName] string? propertyName = null)
     {
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        PropertyChanged?.Invoke(
+            this,
+            new PropertyChangedEventArgs(propertyName));
     }
 }
